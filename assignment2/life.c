@@ -4,14 +4,17 @@
 #include <stdlib.h>
 #include "board.h"
 
+
 int main(int argc, char *argv[]) {
 	unsigned int nr, nc, i, j, xoffset, yoffset, inputx, inputy;
-	long gens;
+	long gens, iteration;
 	char *input;
 	char *line = NULL;
 	size_t len = 0;
-	char **board;
-	char **buffer;
+	char **A;
+	char **B;
+	char **C;
+	char **boards[3];
 	char temp;
 	int print = 0;
 	int pause = 0;
@@ -31,18 +34,19 @@ int main(int argc, char *argv[]) {
 	if (argc > 6 && argv[6][0] == 'y') pause = 1;
 
 	// allocate arrays
-	board = malloc(nc * sizeof(char *));
-	buffer = malloc(nc * sizeof(char *));
+	A = malloc(nc * sizeof(char *));
+	B = malloc(nc * sizeof(char *));
+	C = malloc(nc * sizeof(char *));
 	for (i = 0; i < nc; i++) {
-		board[i] = malloc(nr * sizeof(char));
-		buffer[i] = malloc(nr * sizeof(char));
+		A[i] = malloc(nr * sizeof(char));
+		B[i] = malloc(nr * sizeof(char));
+		C[i] = malloc(nr * sizeof(char));
 	}
 
 	// fill in array with blanks
 	for (j = 0; j < nr; j++) {
 		for (i = 0; i < nc; i++) {
-			board[i][j] = 'o';
-			buffer[i][j] = 'o';
+			A[i][j] = 'o';
 		}
 	}
 
@@ -50,9 +54,7 @@ int main(int argc, char *argv[]) {
 	if ((fp = fopen(input, "r")) == NULL) {
 		printf("file open error\n");
 		exit(1);
-	}
-
-	// read from file
+	} // read from file
 	inputy = 0;
 	while ((xoffset = getline(&line, &len, fp)) != -1) {
 		if (xoffset > inputx) inputx = xoffset;
@@ -68,8 +70,7 @@ int main(int argc, char *argv[]) {
 		for (i = xoffset; i < nc; i++) {
 			temp = fgetc(fp);
 			if (temp == 'x') {
-				board[i][j] = 'x';
-				buffer[i][j] = 'x';
+				A[i][j] = 'x';
 			} else if (temp == '\n') {
 				i = nc;
 			} else if (temp == EOF) {
@@ -79,15 +80,27 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	printf("=== STARTING BOARD ===\n\n");
-	printBoard(nr, nc, board);
+	// prepare to play
+	iteration = 0;
+	boards[0] = A;
+	boards[1] = B;
+	boards[2] = C;
 
-	printf("=== NEIGHBORS ===\n\n");
-	for (j = 0; j < nr; j++) {
-		for (i = 0; i < nc; i++) {
-			printf("%u", getNeighbors(nr, nc, i, j, board));
+	while (iteration < gens) {
+		if (print) {
+			printf("\n==== ITERATION %4li ====\n", iteration);
+			printBoard(nr, nc, boards[iteration % 3]);
 		}
-		printf("\n");
+
+		if (pause) {
+			printf("Press enter to continue...\n");
+			getchar();
+		}
+
+		// play the game
+		playOne(nr, nc, boards[iteration % 3], boards[(iteration + 1) % 3]);
+
+		iteration++;
 	}
 
 	return 0;
