@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include "board.h"
 
 
@@ -18,7 +19,11 @@ int main(int argc, char *argv[]) {
 	char temp;
 	int print = 0;
 	int pause = 0;
+	int done;
 	FILE *fp;
+	struct timespec sleepTime;
+	sleepTime.tv_sec = 0;
+	sleepTime.tv_nsec = 12000000;
 
 	// check number of arguments
 	if (argc < 5) {
@@ -64,7 +69,7 @@ int main(int argc, char *argv[]) {
 	xoffset = (nc - inputx) / 2.0f + 0.5f; // simulate rounding
 	yoffset = (nr - inputy) / 2.0f + 0.5f;
 		
-	// always reqind your tapes before returning them
+	// always rewind your tapes before returning them
 	rewind(fp);
 	for (j = yoffset; j < nr; j++) {
 		for (i = xoffset; i < nc; i++) {
@@ -88,8 +93,7 @@ int main(int argc, char *argv[]) {
 
 	while (iteration < gens) {
 		if (print) {
-			printf("\n==== ITERATION %4li ====\n", iteration);
-			printBoard(nr, nc, boards[iteration % 3]);
+			printBoard(nr, nc, boards[iteration % 3], iteration);
 		}
 
 		if (pause) {
@@ -99,9 +103,20 @@ int main(int argc, char *argv[]) {
 
 		// play the game
 		playOne(nr, nc, boards[iteration % 3], boards[(iteration + 1) % 3]);
-
+		
+		if ((done = checkDone(nr, nc, boards[iteration % 3], boards[(iteration + 1) % 3], boards[(iteration + 2) % 3])) == 1) {
+			printf("Stuck in a loop, exiting.\n");
+			exit(0);
+		} else if (done == 2) {
+			printf("Oscillating, exiting.\n");
+			exit(0);
+		}
 		iteration++;
+		nanosleep(&sleepTime, NULL);
 	}
+
+	printf("Reached the maximum generation, exiting\n");
+	exit(0);
 
 	return 0;
 }
